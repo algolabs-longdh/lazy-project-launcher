@@ -1,5 +1,20 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
+function createIpcSubscription(channel) {
+  return (callback) => {
+    if (typeof callback !== 'function') {
+      return () => {}
+    }
+
+    const listener = (_event, payload) => {
+      callback(payload)
+    }
+
+    ipcRenderer.on(channel, listener)
+    return () => ipcRenderer.removeListener(channel, listener)
+  }
+}
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -25,5 +40,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Locale management
   onLocaleChanged: (callback) => ipcRenderer.on('locale-changed', callback),
-  removeLocaleChangedListener: (callback) => ipcRenderer.removeListener('locale-changed', callback)
+  removeLocaleChangedListener: (callback) => ipcRenderer.removeListener('locale-changed', callback),
+
+  // Terminal bridge
+  terminal: {
+    open: (options) => ipcRenderer.invoke('send-message', 'open-terminal', options),
+    close: (sessionId) => ipcRenderer.invoke('terminal-close', { sessionId }),
+    write: (sessionId, data) => ipcRenderer.send('terminal-write', { sessionId, data }),
+    resize: (sessionId, cols, rows) => ipcRenderer.send('terminal-resize', { sessionId, cols, rows }),
+    onData: createIpcSubscription('terminal-data'),
+    onExit: createIpcSubscription('terminal-exit')
+  }
 })

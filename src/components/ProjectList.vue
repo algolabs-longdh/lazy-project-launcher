@@ -2,40 +2,67 @@
   <div class="project-list">
     <div v-if="projectStore.projects.length === 0" class="empty-state">
       <div class="empty-icon">📁</div>
-      <h3>{{ t('project.no_projects') }}</h3>
-      <p>{{ t('project.import_first_project') }}</p>
+      <h3>{{ t("project.no_projects") }}</h3>
+      <p>{{ t("project.import_first_project") }}</p>
     </div>
-    
+
     <div v-else-if="filteredProjects.length === 0" class="empty-state">
       <div class="empty-icon">🔍</div>
       <h3>No projects found</h3>
       <p>Try adjusting your search terms</p>
     </div>
-    
+
     <!-- Search status info -->
-    <div v-if="searchQuery.trim() && filteredProjects.length > 0" class="search-info">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-        <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2"/>
-        <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2"/>
+    <div
+      v-if="searchQuery.trim() && filteredProjects.length > 0"
+      class="search-info"
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+        <line
+          x1="12"
+          y1="8"
+          x2="12"
+          y2="12"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+        <line
+          x1="12"
+          y1="16"
+          x2="12.01"
+          y2="16"
+          stroke="currentColor"
+          stroke-width="2"
+        />
       </svg>
-      <span>{{ t('project.search_active_no_reorder') }}</span>
+      <span>{{ t("project.search_active_no_reorder") }}</span>
     </div>
-    
+
     <div v-if="filteredProjects.length > 0" class="project-grid">
-      <div 
-        v-for="(project, index) in filteredProjects" 
+      <div
+        v-for="(project, index) in filteredProjects"
         :key="project.id"
         class="project-card"
-        :class="{ 
-          'dragging': dragState.draggedIndex === index, 
+        :class="{
+          dragging: dragState.draggedIndex === index,
           'drag-over': dragState.dragOverIndex === index,
-          'search-mode': searchQuery.trim()
+          'search-mode': searchQuery.trim(),
         }"
         :draggable="!searchQuery.trim()"
-        @dragstart="searchQuery.trim() ? null : handleDragStart($event, index, project)"
+        @dragstart="
+          searchQuery.trim() ? null : handleDragStart($event, index, project)
+        "
         @dragend="handleDragEnd"
-        @dragover.prevent="searchQuery.trim() ? null : handleDragOver($event, index)"
+        @dragover.prevent="
+          searchQuery.trim() ? null : handleDragOver($event, index)
+        "
         @dragleave="handleDragLeave"
         @drop.prevent="searchQuery.trim() ? null : handleDrop($event, index)"
         @click="openProject(project)"
@@ -43,26 +70,36 @@
         <div class="project-info">
           <h3 class="project-name">{{ project.name }}</h3>
           <p class="project-path">{{ project.path }}</p>
-          <ProjectActionBar 
-            :project="project" 
+          <ProjectActionBar
+            :project="project"
             @open-settings="openSettings"
+            @start-project="handleStartProject"
           />
         </div>
-        
+
         <div class="project-actions">
-          <button 
+          <button
             class="action-btn remove-btn"
             @click.stop="removeProject(project.id)"
             title="Remove project"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z"
+                fill="currentColor"
+              />
             </svg>
           </button>
         </div>
       </div>
     </div>
-    <ProjectSettings 
+    <ProjectSettings
       v-if="selectedProject"
       :project="selectedProject"
       :is-visible="showSettings"
@@ -73,144 +110,149 @@
 </template>
 
 <script>
-import { ref, computed, reactive } from 'vue'
-import projectStore from '../store/projectStore'
-import ProjectActionBar from './ProjectActionBar.vue'
-import ProjectSettings from './ProjectSettings.vue'
-import { useI18n } from '../utils/useI18n'
+import { ref, computed, reactive } from "vue";
+import projectStore from "../store/projectStore";
+import ProjectActionBar from "./ProjectActionBar.vue";
+import ProjectSettings from "./ProjectSettings.vue";
+import { useI18n } from "../utils/useI18n";
 
 export default {
-  name: 'ProjectList',
+  name: "ProjectList",
   components: {
     ProjectActionBar,
-    ProjectSettings
+    ProjectSettings,
   },
+  emits: ["select-project", "start-project", "project-removed"],
   props: {
     searchQuery: {
       type: String,
-      default: ''
-    }
+      default: "",
+    },
   },
-  setup(props) {
+  setup(props, { emit }) {
     // Use i18n composable
-    const { t } = useI18n()
-    
-    const selectedProject = ref(null)
-    const showSettings = ref(false)
-    
+    const { t } = useI18n();
+
+    const selectedProject = ref(null);
+    const showSettings = ref(false);
+
     // Drag and drop state
     const dragState = reactive({
       draggedIndex: null,
       draggedProject: null,
       dragOverIndex: null,
-      isDragging: false
-    })
-    
+      isDragging: false,
+    });
+
     const openProject = (project) => {
-      console.log('Opening project:', project)
-      // TODO: 实现打开项目的逻辑
-    }
-    
+      emit("select-project", project);
+    };
+
     const removeProject = (projectId) => {
-      if (confirm('Are you sure you want to remove this project?')) {
-        projectStore.removeProject(projectId)
+      if (confirm("Are you sure you want to remove this project?")) {
+        projectStore.removeProject(projectId);
+        emit("project-removed", projectId);
       }
-    }
-    
+    };
+
     const openSettings = (project) => {
-      selectedProject.value = project
-      showSettings.value = true
-    }
-    
+      selectedProject.value = project;
+      showSettings.value = true;
+    };
+
     const closeSettings = () => {
-      showSettings.value = false
-      selectedProject.value = null
-    }
-    
+      showSettings.value = false;
+      selectedProject.value = null;
+    };
+
     const onSettingsSaved = (data) => {
-      console.log('Settings saved for project:', data.projectId, data.settings)
-    }
-    
+      console.log("Settings saved for project:", data.projectId, data.settings);
+    };
+
     // Drag and drop handlers
     const handleDragStart = (event, index, project) => {
-      dragState.draggedIndex = index
-      dragState.draggedProject = project
-      dragState.isDragging = true
-      
+      dragState.draggedIndex = index;
+      dragState.draggedProject = project;
+      dragState.isDragging = true;
+
       // Set drag effect
-      event.dataTransfer.effectAllowed = 'move'
-      event.dataTransfer.setData('text/plain', project.id)
-      
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", project.id);
+
       // Add drag image
-      const dragImage = event.target.cloneNode(true)
-      dragImage.style.opacity = '0.8'
-      event.dataTransfer.setDragImage(dragImage, 0, 0)
-    }
-    
+      const dragImage = event.target.cloneNode(true);
+      dragImage.style.opacity = "0.8";
+      event.dataTransfer.setDragImage(dragImage, 0, 0);
+    };
+
     const handleDragEnd = () => {
       // Reset drag state
-      dragState.draggedIndex = null
-      dragState.draggedProject = null
-      dragState.dragOverIndex = null
-      dragState.isDragging = false
-    }
-    
+      dragState.draggedIndex = null;
+      dragState.draggedProject = null;
+      dragState.dragOverIndex = null;
+      dragState.isDragging = false;
+    };
+
     const handleDragOver = (event, index) => {
-      event.preventDefault()
-      event.dataTransfer.dropEffect = 'move'
-      
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+
       if (dragState.draggedIndex !== null && dragState.draggedIndex !== index) {
-        dragState.dragOverIndex = index
+        dragState.dragOverIndex = index;
       }
-    }
-    
+    };
+
     const handleDragLeave = () => {
-      dragState.dragOverIndex = null
-    }
-    
+      dragState.dragOverIndex = null;
+    };
+
     const handleDrop = (event, dropIndex) => {
-      event.preventDefault()
-      
-      const draggedIndex = dragState.draggedIndex
+      event.preventDefault();
+
+      const draggedIndex = dragState.draggedIndex;
       if (draggedIndex === null || draggedIndex === dropIndex) {
-        return
+        return;
       }
-      
+
       // Only allow reordering if no search filter is active
       if (props.searchQuery && props.searchQuery.trim()) {
-        console.log('Cannot reorder while search is active')
-        return
+        console.log("Cannot reorder while search is active");
+        return;
       }
-      
+
       // Reorder projects in the store
-      const projects = [...projectStore.projects]
-      const draggedProject = projects[draggedIndex]
-      
+      const projects = [...projectStore.projects];
+      const draggedProject = projects[draggedIndex];
+
       // Remove from old position
-      projects.splice(draggedIndex, 1)
-      
+      projects.splice(draggedIndex, 1);
+
       // Insert at new position
-      projects.splice(dropIndex, 0, draggedProject)
-      
+      projects.splice(dropIndex, 0, draggedProject);
+
       // Update the store
-      projectStore.reorderProjects(projects)
-      
+      projectStore.reorderProjects(projects);
+
       // Reset drag state
-      handleDragEnd()
-    }
-    
+      handleDragEnd();
+    };
+
     // 过滤项目列表
     const filteredProjects = computed(() => {
       if (!props.searchQuery.trim()) {
-        return projectStore.projects
+        return projectStore.projects;
       }
-      
-      const query = props.searchQuery.toLowerCase()
-      return projectStore.projects.filter(project => 
+
+      const query = props.searchQuery.toLowerCase();
+      return projectStore.projects.filter((project) =>
         project.name.toLowerCase().includes(query)
-      )
-    })
-    
+      );
+    });
+
+    const handleStartProject = (payload) => {
+      emit("start-project", payload);
+    };
+
     return {
       t,
       projectStore,
@@ -228,10 +270,11 @@ export default {
       handleDragEnd,
       handleDragOver,
       handleDragLeave,
-      handleDrop
-    }
-  }
-}
+      handleDrop,
+      handleStartProject,
+    };
+  },
+};
 </script>
 
 <style scoped>
@@ -333,7 +376,6 @@ export default {
   cursor: pointer;
 }
 
-
 .project-card:hover {
   border-color: var(--primary-color);
   box-shadow: var(--shadow-md);
@@ -362,7 +404,7 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   line-height: 1.3;
 }
 
@@ -405,21 +447,20 @@ export default {
   .project-list {
     padding: var(--spacing-md);
   }
-  
+
   .project-grid {
-    grid-template-columns: 1fr;
     gap: var(--spacing-sm);
   }
-  
+
   .project-card {
     padding: var(--spacing-sm);
     min-height: 50px;
   }
-  
+
   .project-name {
     font-size: var(--text-sm);
   }
-  
+
   .project-path {
     font-size: 10px;
   }

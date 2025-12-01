@@ -11,17 +11,6 @@
     </button>
     
     <button 
-      class="action-btn terminal-btn"
-      @click="openTerminal"
-      :title="t('project.open_terminal')"
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 16L8 12L4 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 20H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-    
-    <button 
       class="action-btn settings-btn"
       @click="openSettings"
       :title="t('common.settings')"
@@ -39,6 +28,7 @@ import { useI18n } from '../utils/useI18n'
 
 export default {
   name: 'ProjectActionBar',
+  emits: ['start-project', 'open-settings'],
   props: {
     project: {
       type: Object,
@@ -56,7 +46,6 @@ export default {
   methods: {
     async startProject() {
       try {
-        // get project settings
         const settings = localStorage.getItem(`project-settings-${this.project.id}`)
         const startCommands = settings ? JSON.parse(settings).startCommands : ''
         
@@ -65,48 +54,13 @@ export default {
           return
         }
         
-        // send start command to main process
-        if (window.electronAPI) {
-          const result = await window.electronAPI.sendMessage('start-project', {
-            projectId: this.project.id,
-            path: this.project.path,
-            commands: startCommands
-          })
-          
-          if (result.success) {
-            console.log('Project started successfully')
-          } else {
-            console.error('Failed to start project:', result.error)
-            alert(this.t('messages.project_start_failed') + ': ' + result.error)
-          }
-        } else {
-          console.log('Starting project with commands:', startCommands)
-        }
+        this.$emit('start-project', {
+          project: this.project,
+          commands: startCommands
+        })
       } catch (error) {
-        console.error('Error starting project:', error)
+        console.error('Error preparing start command:', error)
         alert(this.t('messages.project_start_error') + ': ' + error.message)
-      }
-    },
-    
-    async openTerminal() {
-      try {
-        if (window.electronAPI) {
-          const result = await window.electronAPI.sendMessage('open-terminal', {
-            path: this.project.path
-          })
-          
-          if (result.success) {
-            console.log('Terminal opened successfully')
-          } else {
-            console.error('Failed to open terminal:', result.error)
-            alert(this.t('messages.terminal_open_failed') + ': ' + result.error)
-          }
-        } else {
-          console.log('Opening terminal in:', this.project.path)
-        }
-      } catch (error) {
-        console.error('Error opening terminal:', error)
-        alert(this.t('messages.terminal_open_error') + ': ' + error.message)
       }
     },
     
@@ -153,16 +107,6 @@ export default {
   background-color: var(--success-light);
   border-color: var(--success-color);
   color: var(--success-dark);
-}
-
-.terminal-btn {
-  color: var(--info-color);
-}
-
-.terminal-btn:hover {
-  background-color: var(--info-light);
-  border-color: var(--info-color);
-  color: var(--info-dark);
 }
 
 .settings-btn {
