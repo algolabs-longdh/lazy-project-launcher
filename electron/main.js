@@ -346,15 +346,15 @@ function createWindow() {
   console.log("Frame menu created");
 
   // Handle window close event
-  mainWindow.on("close", (event) => {
-    if (frameMenu && frameMenu.closeToTray) {
-      event.preventDefault();
-      frameMenu.minimizeToTray();
-    } else {
+  mainWindow.on("close", async (event) => {
+    if (!frameMenu) {
+      return;
+    }
+
+    const shouldPreventClose = await frameMenu.handleCloseRequest(event);
+    if (!shouldPreventClose) {
       // Clean up tray when actually closing
-      if (frameMenu) {
-        frameMenu.destroyTray();
-      }
+      frameMenu.destroyTray();
     }
   });
 

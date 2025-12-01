@@ -91,6 +91,10 @@
     "project_start_failed": "Failed to start project",
     "project_start_error": "Error starting project",
     "terminal_open_failed": "Failed to open terminal",
-    "terminal_open_error": "Error opening terminal"
+    "terminal_open_error": "Error opening terminal",
+    "close_prompt_title": "How should Lazy Project Launcher close?",
+    "close_prompt_message": "Choose whether to exit completely or keep it running from the system tray.",
+    "close_prompt_exit": "Exit completely",
+    "close_prompt_tray": "Minimize to tray"
   }
 }
