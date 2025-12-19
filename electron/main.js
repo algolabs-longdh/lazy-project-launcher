@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, nativeImage } = require("electron");
 const path = require("path");
+const fs = require("fs");
 const { randomUUID } = require("crypto");
 const pty = require("node-pty");
 const FrameMenu = require("./framemenu");
@@ -292,10 +293,49 @@ function createWindow() {
   const packageInfo = require("../package.json");
   const appTitle = `Lazy Project Launcher v${packageInfo.version}`;
 
+  // Get icon path - handle both dev and production environments
+  let iconPath;
+  if (isDev) {
+    iconPath = path.join(__dirname, "../icon.png");
+  } else {
+    // In production, try multiple possible locations
+    const possiblePaths = [
+      path.join(process.resourcesPath, "app", "icon.png"),
+      path.join(app.getAppPath(), "icon.png"),
+      path.join(__dirname, "../icon.png"),
+    ];
+    
+    for (const possiblePath of possiblePaths) {
+      if (fs.existsSync(possiblePath)) {
+        iconPath = possiblePath;
+        break;
+      }
+    }
+    
+    // Fallback to default if none found
+    if (!iconPath) {
+      iconPath = path.join(__dirname, "../icon.png");
+    }
+  }
+
+  // Load icon using nativeImage for better compatibility
+  let windowIcon;
+  try {
+    if (fs.existsSync(iconPath)) {
+      windowIcon = nativeImage.createFromPath(iconPath);
+      // Ensure icon is valid
+      if (windowIcon.isEmpty()) {
+        windowIcon = null;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to load icon:", error);
+  }
+
   // use WindowManager to create window
   const windowOptions = {
     title: appTitle,
-    icon: path.join(__dirname, "../icon.png"),
+    icon: windowIcon || iconPath,
     width: 1200,
     height: 800,
     minWidth: 1200,
@@ -320,8 +360,17 @@ function createWindow() {
   const { window } = windowManager.createWindow(windowOptions);
   mainWindow = window;
 
-  // Explicitly set the window title after creation
+  // Explicitly set the window title and icon after creation
   mainWindow.setTitle(appTitle);
+  
+  // Set icon explicitly for Windows taskbar
+  if (process.platform === "win32" && windowIcon) {
+    try {
+      mainWindow.setIcon(windowIcon);
+    } catch (error) {
+      console.error("Failed to set window icon:", error);
+    }
+  }
 
   // Load the app
   if (isDev) {
@@ -373,6 +422,9 @@ app.whenReady().then(() => {
     try {
       console.log("Setting Windows to dark theme...");
       nativeTheme.themeSource = "dark";
+      
+      // Set App User Model ID for Windows taskbar icon
+      app.setAppUserModelId("com.lazyprojectlauncher.app");
     } catch (error) {
       console.log("Could not set native theme to dark:", error.message);
     }
