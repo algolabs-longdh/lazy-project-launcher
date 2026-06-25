@@ -1,0 +1,46 @@
+diff --git a/node_modules/node-pty/binding.gyp b/node_modules/node-pty/binding.gyp
+index 5f63978..b3309a0 100644
+--- a/node_modules/node-pty/binding.gyp
++++ b/node_modules/node-pty/binding.gyp
+@@ -5,9 +5,6 @@
+     ],
+     'conditions': [
+       ['OS=="win"', {
+-        'msvs_configuration_attributes': {
+-          'SpectreMitigation': 'Spectre'
+-        },
+         'msvs_settings': {
+             'VCCLCompilerTool': {
+               'AdditionalOptions': [
+diff --git a/node_modules/node-pty/build/Release/conpty/OpenConsole.exe b/node_modules/node-pty/build/Release/conpty/OpenConsole.exe
+deleted file mode 100644
+index 3db2193..0000000
+Binary files a/node_modules/node-pty/build/Release/conpty/OpenConsole.exe and /dev/null differ
+diff --git a/node_modules/node-pty/build/Release/conpty/conpty.dll b/node_modules/node-pty/build/Release/conpty/conpty.dll
+deleted file mode 100644
+index eb66b16..0000000
+Binary files a/node_modules/node-pty/build/Release/conpty/conpty.dll and /dev/null differ
+diff --git a/node_modules/node-pty/deps/winpty/src/winpty.gyp b/node_modules/node-pty/deps/winpty/src/winpty.gyp
+index 1ac5758..6fde3d1 100644
+--- a/node_modules/node-pty/deps/winpty/src/winpty.gyp
++++ b/node_modules/node-pty/deps/winpty/src/winpty.gyp
+@@ -40,9 +40,6 @@
+                 '-lshell32',
+                 '-luser32',
+             ],
+-            'msvs_configuration_attributes': {
+-                'SpectreMitigation': 'Spectre'
+-            },
+             'msvs_settings': {
+                 # Specify this setting here to override a setting from somewhere
+                 # else, such as node's common.gypi.
+@@ -142,9 +139,6 @@
+                 '-ladvapi32',
+                 '-luser32',
+             ],
+-            'msvs_configuration_attributes': {
+-                'SpectreMitigation': 'Spectre'
+-            },
+             'msvs_settings': {
+                 # Specify this setting here to override a setting from somewhere
+                 # else, such as node's common.gypi.
